@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adaptive Fitness Coach</title>
+<meta name="theme-color" content="#0b0d0f"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#0b0d0f;--card:#15191d;--line:#293038;--muted:#9aa4ad;--text:#f6f7f8;--a:#7cff67}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:520px;margin:auto;padding:18px 16px 100px;min-height:100vh}h1{font-size:28px;margin:14px 0 6px}h2{font-size:20px}p{color:var(--muted);line-height:1.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+button{border:0;border-radius:13px;padding:14px;font-weight:750;font-size:15px;background:var(--a);color:#071006}button.secondary{background:#20262b;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.full{width:100%}.chips{display:flex;flex-wrap:wrap;gap:8px}.chips button{background:#1d2328;color:var(--muted);padding:10px 12px}.chips button.on{background:var(--a);color:#071006}
+.big{font-size:40px;font-weight:800}.accent{color:var(--a)}.pill{font-size:12px;background:#20262b;color:var(--muted);padding:7px 9px;border-radius:99px}
+.machine{height:180px;border-radius:15px;background:linear-gradient(145deg,#232a30,#111518);display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;margin:12px 0;border:1px solid #303840}
+.machine .icon{font-size:54px}.step{border-top:1px solid var(--line);padding:12px 0}.step:first-child{border-top:0}.label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.setbox{font-size:28px;font-weight:800;text-align:center;padding:14px}.difficulty{display:flex;gap:8px}.difficulty button{flex:1;padding:11px 5px;background:#20262b;color:var(--text)}
+input[type=file]{display:none}.scanlabel{display:block;background:#20262b;border-radius:14px;padding:15px;text-align:center;font-weight:750;cursor:pointer}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0b0d0ff5;border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+nav div{max-width:520px;margin:auto;display:flex;gap:5px}nav button{flex:1;background:transparent;color:var(--muted);padding:9px 4px;font-size:12px}nav button.on{color:var(--a)}
+.notice{font-size:13px;padding:11px;border-radius:12px;background:#101a12;color:#bdeeb6}
+</style></head><body><main id="app" class="app"></main>
+<nav><div><button id="nToday" class="on" onclick="show('Today')">Today</button><button id="nCoach" onclick="show('Coach')">Coach</button><button id="nScan" onclick="show('Scan')">Scan Equipment</button><button id="nProgress" onclick="show('Progress')">Progress</button></div></nav>
+<script>
+const plans={
+"Abs & Core":[
+["Treadmill","Warm-up / conditioning","5 min","Walk briskly; use a modest incline.","Keep posture tall and avoid holding the rails."],
+["Leg Press","Legs / large-muscle strength","2 × 8–12","Adjust the seat so your knees are comfortably bent. Feet about shoulder-width on platform. Press through the whole foot.","Do not lock your knees or let your lower back curl off the pad."],
+["Chest Press","Chest / shoulders / triceps","2 × 8–12","Adjust seat so handles are around mid-chest. Keep back against pad and feet planted. Press forward smoothly.","Do not shrug or let elbows travel excessively behind your body."],
+["Lat Pulldown","Back / biceps","2 × 8–12","Sit tall, secure thighs under pad, grip slightly wider than shoulders, pull bar toward upper chest.","Do not swing backward or pull the bar behind your neck."],
+["Cable Crunch","Abs","2 × 10–15","Use a high cable with rope. Kneel facing the stack, rope beside your head, and curl your rib cage toward your pelvis.","Keep hips relatively still; don't just pull with your arms."],
+["Pallof Press","Obliques / anti-rotation core","2 × 10 each side","Set cable around chest height. Stand sideways to the stack, hold handle at chest, press straight out while resisting rotation.","Keep hips and shoulders square; use a light weight first."],
+["Side Plank","Obliques / core","2 × 30 sec each side","Elbow under shoulder, body in a straight line, lift hips and brace.","Don't let hips sag or rotate."],
+["Incline Treadmill","Conditioning","5–6 min","Alternate a brisk incline walk with easier recovery periods.","You should work hard but remain in control."]
+],
+"Balanced":[
+["Treadmill","Warm-up","5 min","Brisk walk at a comfortable incline.","Stay tall and relaxed."],
+["Leg Press","Legs","2 × 8–12","Feet shoulder-width; controlled lowering and smooth press.","Don't lock knees."],
+["Chest Press","Chest","2 × 8–12","Handles around mid-chest; back supported.","Don't shrug."],
+["Lat Pulldown","Back","2 × 8–12","Pull toward upper chest with controlled tempo.","Don't swing."],
+["Romanian Deadlift","Hamstrings / glutes","2 × 8–10","Start light. Push hips back while keeping spine neutral.","Stop if you cannot maintain a neutral back."],
+["Seated Cable Row","Back","2 × 10–12","Sit tall and pull handle toward lower ribs.","Don't use momentum."],
+["Plank","Core","2 × 30–45 sec","Brace as if preparing for a punch.","Don't let lower back sag."],
+["Incline Treadmill","Conditioning","5 min","Brisk controlled finish.","Don't hold the rails."]
+]};
+let S=JSON.parse(localStorage.getItem("coachv3")||"null")||{name:"Nathan",time:45,focus:"Abs & Core",recovery:82,sleep:91,i:0,weights:{},history:[]};
+function save(){localStorage.setItem("coachv3",JSON.stringify(S))}
+function nav(x){["Today","Coach","Scan","Progress"].forEach(y=>document.getElementById("n"+y).classList.toggle("on",x===y))}
+function show(x){nav(x);window.scrollTo(0,0);if(x==="Today")today();if(x==="Coach")coach();if(x==="Scan")scan();if(x==="Progress")progress()}
+function today(){document.getElementById("app").innerHTML=`<h1>Good afternoon, ${S.name}</h1><p>Your guided personal-training session.</p>
+<div class="card"><div class="row"><div><div class="label">Recovery</div><div class="big accent">${S.recovery}%</div></div><div><div class="label">Sleep</div><div class="big">${S.sleep}%</div></div></div><p class="notice">WHOOP is still simulated in this build.</p></div>
+<div class="card"><h2>How much time?</h2><div class="chips">${[20,30,45,60].map(t=>`<button class="${S.time===t?'on':''}" onclick="S.time=${t};save();today()">${t} min</button>`).join("")}</div></div>
+<div class="card"><h2>What do you want to emphasize?</h2><div class="chips">${["Balanced","Abs & Core","Chest","Arms","Back","Shoulders","Legs"].map(f=>`<button class="${S.focus===f?'on':''}" onclick="S.focus='${f}';S.i=0;save();today()">${f}</button>`).join("")}</div></div>
+<div class="card"><div class="label">Today's recommendation</div><h2>Full Body + ${S.focus} · ${S.time} min</h2><p>${S.focus==="Abs & Core"?"We will strengthen your abs and obliques while keeping high-return full-body work. This builds the area; reducing love-handle fat still requires overall fat loss.":"A full-body session with extra work allocated to your selected area."}</p><button class="full" onclick="S.i=0;save();show('Coach')">Start guided workout</button></div>
+<button class="secondary full" onclick="show('Scan')">Scan a machine instead</button>`}
+function getPlan(){return plans[S.focus]||plans["Balanced"]}
+function toggleGuide(){let g=document.getElementById("guide");g.style.display=g.style.display==="none"?"block":"none";}
+function coach(){let P=getPlan();let e=P[Math.min(S.i,P.length-1)];let wt=S.weights[e[0]]||"";document.getElementById("app").innerHTML=`<div class="label">Exercise ${S.i+1} of ${P.length}</div><h1>${e[0]}</h1><span class="pill">${e[1]}</span>
+<div class="machine"><div><div class="icon">🏋️</div><strong>Look for: ${e[0]}</strong><p style="margin:5px 0 0">Match the machine name, then use Beginner Guide before your first set.</p></div></div>
+<div class="card"><div class="row"><div><div class="label">Visual coaching</div><strong>New to this exercise?</strong></div><button style="width:auto" onclick="toggleGuide()">Show me how</button></div>
+<div id="guide" style="display:none;margin-top:12px">
+<div style="display:flex;gap:7px"><div class="pill">① SET UP</div><div class="pill">② MOVE</div><div class="pill">③ RETURN</div></div>
+<div class="step"><b>Set up</b><p>${e[3].split(".")[0]}.</p></div>
+<div class="step"><b>Perform the movement</b><p>${e[3]}</p></div>
+<div class="step"><b>Common mistake</b><p>${e[4]}</p></div>
+<p class="notice">Start conservatively. Your last 2–3 reps should feel challenging while your form stays clean.</p>
+</div></div>
+<div class="card"><div class="step"><div class="label">Today's prescription</div><div class="setbox">${e[2]}</div></div><div class="step"><strong>How to set up & perform it</strong><p>${e[3]}</p></div><div class="step"><strong>Watch for this</strong><p>${e[4]}</p></div>${e[2].includes("×")?`<div class="step"><strong>Choose your weight</strong><p>${wt?`Last learned target: <b>${wt} lb</b>.`:"For your first set, start conservatively. The last 2–3 reps should feel challenging while your form stays clean."}</p></div>`:""}</div>
+<button class="secondary full" onclick="window.open('https://www.youtube.com/results?search_query='+encodeURIComponent('${e[0]} proper form NASM'),'_blank')">▶ Watch form demonstration</button>
+<button class="full" onclick="feedback()">I finished this exercise</button><button class="ghost full" onclick="show('Scan')">Can't find it — scan equipment</button>`}
+function feedback(){let e=getPlan()[S.i];document.getElementById("app").innerHTML=`<h1>How did ${e[0]} feel?</h1><p>Your answer helps the coach learn the right resistance for you.</p><div class="card"><div class="difficulty"><button onclick="rate('easy')">Too easy</button><button onclick="rate('good')">About right</button><button onclick="rate('hard')">Too hard</button></div></div><p class="notice">For unfamiliar exercises, prioritize clean technique over heavier weight.</p>`}
+function rate(r){let P=getPlan(),e=P[S.i];let current=S.weights[e[0]]||10;if(r==="easy")current+=5;if(r==="hard")current=Math.max(5,current-5);S.weights[e[0]]=current;S.i++;save();if(S.i>=P.length){S.history.push({date:new Date().toISOString(),focus:S.focus,time:S.time});S.i=0;save();alert("Workout complete — great job. Your feedback was saved for next time.");show("Progress")}else coach()}
+function scan(){document.getElementById("app").innerHTML=`<h1>Scan Equipment</h1><p>Photograph a machine you don't recognize. This prototype captures the image; AI equipment identification is the next server-connected feature.</p><div class="card"><label class="scanlabel" for="photo">📷 Take or choose a photo</label><input id="photo" type="file" accept="image/*" capture="environment" onchange="preview(event)"><div id="preview"></div></div><div class="card"><h2>What the finished feature will tell you</h2><p><b>Machine name</b><br>Muscles trained<br>Whether it fits today's goal<br>How to adjust the seat/handles<br>Recommended sets and reps<br>Starting-weight guidance<br>Common form mistakes<br>Safer alternatives when needed</p></div>`}
+function preview(ev){let f=ev.target.files[0];if(!f)return;let u=URL.createObjectURL(f);document.getElementById("preview").innerHTML=`<img src="${u}" style="width:100%;border-radius:14px;margin-top:14px"><p class="notice">Photo captured. In the production version this is where the coach will analyze the machine and guide you.</p>`}
+function progress(){document.getElementById("app").innerHTML=`<h1>Progress</h1><div class="card"><div class="label">Workouts completed</div><div class="big">${S.history.length}</div></div><div class="card"><h2>Learned resistance targets</h2>${Object.keys(S.weights).length?Object.entries(S.weights).map(([k,v])=>`<div class="step row"><span>${k}</span><b>${v} lb</b></div>`).join(""):"<p>As you complete exercises and rate difficulty, your targets will appear here.</p>"}</div>`}
+today();
+</script></body></html>
