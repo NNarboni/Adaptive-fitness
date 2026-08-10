@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 export default function handler(req,res){
   const state=crypto.randomBytes(12).toString("hex");
-  const redirectUri=`https://${req.headers.host}/api/whoop/callback`;
+ const redirectUri="https://adaptivefitnesswhoop.vercel.app/api/whoop/callback ;
   const scope=[
     "offline",
     "read:recovery",
