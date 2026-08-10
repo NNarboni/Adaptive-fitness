@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Adaptive Fitness</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Adaptive Fitness">
+<style>
+:root{--bg:#0b0d0f;--card:#15191d;--muted:#9aa4ad;--text:#f6f7f8;--accent:#7cff67;--line:#2a3036;--danger:#ff7a7a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.app{max-width:520px;margin:0 auto;min-height:100vh;padding:env(safe-area-inset-top) 16px calc(84px + env(safe-area-inset-bottom))}
+h1{font-size:28px;margin:18px 0 6px}h2{font-size:20px;margin:0 0 12px}p{color:var(--muted);line-height:1.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.pill{padding:7px 10px;border-radius:999px;background:#1e2429;color:var(--muted);font-size:13px}
+.big{font-size:42px;font-weight:750}.accent{color:var(--accent)}
+button{width:100%;border:0;border-radius:14px;padding:15px 16px;font-size:16px;font-weight:700;background:var(--accent);color:#091008;margin-top:10px}
+button.secondary{background:#20262b;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.segment{display:flex;gap:8px}.segment button{padding:10px 8px;margin:0;background:#1b2025;color:var(--muted)}.segment button.active{background:var(--accent);color:#091008}
+.exercise{padding:14px 0;border-top:1px solid var(--line)}.exercise:first-child{border-top:0}.exercise strong{display:block;font-size:17px}.meta{font-size:14px;color:var(--muted);margin-top:4px}
+input{width:72px;background:#0f1316;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font-size:16px}
+.setrow{display:flex;gap:8px;align-items:center;margin-top:10px}.setrow span{width:48px;color:var(--muted);font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(11,13,15,.96);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center}
+nav .inner{max-width:520px;width:100%;display:flex;gap:8px}nav button{margin:0;padding:10px 8px;background:transparent;color:var(--muted);font-size:13px}nav button.active{color:var(--accent)}
+.small{font-size:13px}.hidden{display:none}.success{color:var(--accent)}.warn{color:#ffd36b}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<nav><div class="inner">
+<button id="navToday" onclick="show('today')" class="active">Today</button>
+<button id="navWorkout" onclick="show('workout')">Workout</button>
+<button id="navProgress" onclick="show('progress')">Progress</button>
+<button id="navProfile" onclick="show('profile')">Profile</button>
+</div></nav>
+<script>
+const exBase=[
+{name:"Leg Press",pattern:"Squat",reps:"8–12",w:140},
+{name:"Chest Press",pattern:"Push",reps:"8–12",w:70},
+{name:"Lat Pulldown",pattern:"Pull",reps:"8–12",w:85},
+{name:"Romanian Deadlift",pattern:"Hinge",reps:"8–10",w:85},
+{name:"Seated Cable Row",pattern:"Pull",reps:"10–12",w:80},
+{name:"Plank",pattern:"Core",reps:"45 sec",w:0},
+{name:"Incline Walk",pattern:"Conditioning",reps:"6 min",w:0}
+];
+let state=JSON.parse(localStorage.getItem('afit')||'null')||{
+name:"Nathan",time:45,recovery:82,sleep:91,goal:"Body recomposition",workouts:[],
+weights:{}
+};
+function save(){localStorage.setItem('afit',JSON.stringify(state))}
+function nav(id){["Today","Workout","Progress","Profile"].forEach(x=>document.getElementById("nav"+x).classList.remove("active"));document.getElementById("nav"+id[0].toUpperCase()+id.slice(1)).classList.add("active")}
+function show(page){nav(page); if(page==="today")renderToday(); if(page==="workout")renderWorkout(); if(page==="progress")renderProgress(); if(page==="profile")renderProfile()}
+function readiness(){return state.recovery>=67?"High":state.recovery>=34?"Moderate":"Low"}
+function selectedExercises(){
+ let count=state.time<=20?4:state.time<=30?5:state.time<=45?7:7;
+ return exBase.slice(0,count);
+}
+function renderToday(){
+ document.getElementById("app").innerHTML=`
+ <h1>Good evening, ${state.name}</h1><p>Your highest-return session based on time, recovery and recent training.</p>
+ <div class="card"><div class="row"><div><div class="small">RECOVERY</div><div class="big accent">${state.recovery}%</div></div><div><div class="small">SLEEP</div><div class="big">${state.sleep}%</div></div></div>
+ <div class="row"><span class="pill">${readiness()} readiness</span><span class="pill">WHOOP simulated</span></div></div>
+ <div class="card"><h2>How much time do you have?</h2><div class="segment">
+ ${[20,30,45,60].map(t=>`<button class="${state.time===t?'active':''}" onclick="setTime(${t})">${t} min</button>`).join("")}</div></div>
+ <div class="card"><div class="row"><div><div class="small">TODAY'S RECOMMENDATION</div><h2 style="margin-top:6px">Full Body · ${state.time} min</h2></div><span class="pill">${selectedExercises().length} exercises</span></div>
+ <p>${readiness()==="High"?"Full planned volume with optional conditioning finisher.":readiness()==="Moderate"?"Primary lifts stay in; accessory volume is slightly reduced.":"Reduced volume and no hard finisher today."}</p>
+ <button onclick="show('workout')">Start workout</button></div>`;
+}
+function setTime(t){state.time=t;save();renderToday()}
+function renderWorkout(){
+ const ex=selectedExercises();
+ document.getElementById("app").innerHTML=`<h1>Today's Workout</h1><p>${state.time} min · Full body · ${readiness()} readiness</p>
+ <div class="card">${ex.map((e,i)=>{
+ let sets=(readiness()==="Low"&&i<5)?2:(i<5?3:1);
+ let w=state.weights[e.name]??e.w;
+ return `<div class="exercise"><strong>${i+1}. ${e.name}</strong><div class="meta">${e.pattern} · ${sets} set${sets>1?'s':''} · ${e.reps}${w?` · target ${w} lb`:''}</div>
+ ${w?Array.from({length:sets},(_,s)=>`<div class="setrow"><span>Set ${s+1}</span><input id="w_${i}_${s}" type="number" inputmode="decimal" value="${w}"><input id="r_${i}_${s}" type="number" inputmode="numeric" placeholder="reps"></div>`).join(""):""}</div>`;
+ }).join("")}<button onclick="finishWorkout()">Finish workout</button></div>`;
+}
+function finishWorkout(){
+ const ex=selectedExercises(); let result=[];
+ ex.forEach((e,i)=>{if(!e.w)return; let rows=[]; for(let s=0;s<3;s++){let wi=document.getElementById(`w_${i}_${s}`);let ri=document.getElementById(`r_${i}_${s}`);if(wi&&ri&&ri.value)rows.push({w:+wi.value,r:+ri.value})}
+ if(rows.length){let top=rows.every(x=>x.r>=12); let base=rows[0].w; state.weights[e.name]=top?Math.round((base+5)*2)/2:base; result.push({name:e.name,rows});}});
+ state.workouts.push({date:new Date().toISOString(),time:state.time,result}); save();
+ alert("Workout saved. Your next-session targets have been updated."); show("progress");
+}
+function renderProgress(){
+ let n=state.workouts.length; let last=state.workouts[n-1];
+ document.getElementById("app").innerHTML=`<h1>Progress</h1><div class="card"><div class="row"><div><div class="small">WORKOUTS LOGGED</div><div class="big">${n}</div></div><div><div class="small">CURRENT GOAL</div><div style="font-weight:700">${state.goal}</div></div></div></div>
+ <div class="card"><h2>Next-session targets</h2>${Object.keys(state.weights).length?Object.entries(state.weights).map(([k,v])=>`<div class="row exercise"><span>${k}</span><strong>${v} lb</strong></div>`).join(""):"<p>Complete your first workout and your progression targets will appear here.</p>"}</div>
+ <div class="card"><h2>Latest workout</h2>${last?`<p>${new Date(last.date).toLocaleDateString()} · ${last.time} minutes</p><p class="success">Saved successfully</p>`:"<p>No workouts logged yet.</p>"}</div>`;
+}
+function renderProfile(){
+ document.getElementById("app").innerHTML=`<h1>Profile</h1><div class="card">
+ <h2>Training goal</h2><p>${state.goal}</p>
+ <h2>Recovery data</h2><p>This prototype uses simulated WHOOP data. Live WHOOP OAuth/API connection is the next integration step.</p>
+ <button class="secondary" onclick="randomRecovery()">Simulate new recovery</button>
+ <button class="ghost" onclick="resetApp()">Reset app data</button></div>`;
+}
+function randomRecovery(){state.recovery=Math.floor(25+Math.random()*71);state.sleep=Math.floor(55+Math.random()*43);save();renderProfile();alert(`Recovery updated to ${state.recovery}%`)}
+function resetApp(){if(confirm("Reset workout history and targets?")){localStorage.removeItem('afit');location.reload()}}
+renderToday();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

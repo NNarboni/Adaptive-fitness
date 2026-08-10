@@ -1,0 +1,9 @@
+{
+  "name": "Adaptive Fitness",
+  "short_name": "Fitness",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0d0f",
+  "theme_color": "#0b0d0f",
+  "description": "Adaptive workout generator and progression logger."
+}
