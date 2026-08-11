@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adaptive Fitness Coach</title>
+<meta name="theme-color" content="#0b0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#0b0d0f;--card:#15191d;--card2:#101417;--line:#2a3138;--muted:#99a3ad;--text:#f7f8f9;--a:#70ff5d;--amber:#ffd166;--red:#ff6b6b}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:560px;margin:auto;padding:26px 18px 110px;min-height:100vh}
+h1{font-size:34px;line-height:1.08;margin:14px 0 8px}h2{font-size:22px;line-height:1.2;margin:8px 0 10px}h3{font-size:18px;margin:6px 0}
+p{color:var(--muted);line-height:1.5;margin:8px 0 12px}.small{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;margin:14px 0}.soft{background:var(--card2)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:#111518;border:1px solid var(--line);border-radius:17px;padding:15px}.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.value{font-size:30px;font-weight:850;margin-top:6px}.accent{color:var(--a)}.amber{color:var(--amber)}.red{color:var(--red)}
+button,.btn{border:0;border-radius:15px;padding:14px 15px;font-size:15px;font-weight:800;background:var(--a);color:#071006;text-decoration:none;text-align:center;display:inline-block}
+button.secondary,.btn.secondary{background:#22282d;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.full{width:100%}.chips{display:flex;flex-wrap:wrap;gap:8px}.chips button{width:auto;background:#1c2227;color:var(--muted);padding:11px 13px}.chips button.on{background:var(--a);color:#071006}
+.notice{background:#102012;color:#bdf6b6;border-radius:14px;padding:13px;font-size:13px;line-height:1.45}.notice.warn{background:#201c10;color:#ffe49a}
+.pill{display:inline-block;border-radius:999px;background:#20262b;color:var(--muted);font-size:12px;padding:7px 9px;margin-right:5px;margin-top:5px}
+.bigrec{font-size:42px;font-weight:900}.exercise{border-top:1px solid var(--line);padding:15px 0}.exercise:first-child{border-top:0}.rx{font-size:25px;font-weight:900;color:var(--a)}
+.progressbar{height:7px;background:#20262b;border-radius:99px;overflow:hidden}.progressbar>div{height:100%;background:var(--a)}
+.guide{background:#111518;border-radius:16px;padding:14px;margin-top:12px}.timer{font-size:54px;font-weight:900;text-align:center;margin:14px 0}.timerBtns{display:flex;gap:8px}.timerBtns button{flex:1}
+.rating{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rating button{background:#20262b;color:var(--text);padding:13px 6px}
+.setline{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.setline:first-child{border-top:0}
+input[type=number]{width:84px;background:#0f1316;border:1px solid var(--line);border-radius:10px;color:white;padding:10px;font-size:16px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0b0d0ff5;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:5}
+nav>div{max-width:560px;margin:auto;display:flex}nav button{flex:1;background:transparent;color:var(--muted);font-size:12px;padding:8px 3px}nav button.on{color:var(--a)}
+
+.musclemap{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center}
+.body svg{width:110px;height:190px;display:block;margin:auto}
+.body .base{fill:#2b3137}.body .active{fill:var(--a)}
+.histrow{padding:12px 0;border-top:1px solid var(--line)}.histrow:first-child{border-top:0}
+.kpirow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:#111518;border:1px solid var(--line);border-radius:14px;padding:12px}
+.kpi .v{font-size:22px;font-weight:850;margin-top:4px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.day{aspect-ratio:1;border-radius:10px;background:#111518;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.day.did{background:#1b3a18;color:#d9ffd3;border-color:#356b2e}
+
+
+.coachbadge{display:inline-flex;align-items:center;gap:6px;background:#102012;color:#bdf6b6;border:1px solid #274b27;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800}
+.pr{background:#1f1b0d;color:#ffe39a;border:1px solid #5c4a16;border-radius:12px;padding:10px 12px;font-size:13px}
+.trend{height:86px;background:#101417;border:1px solid var(--line);border-radius:14px;padding:8px;margin-top:10px}
+.weekgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.weekcard{background:#111518;border:1px solid var(--line);border-radius:14px;padding:12px}
+.volumeRow{display:grid;grid-template-columns:92px 1fr 38px;gap:8px;align-items:center;margin:9px 0}.volbar{height:8px;background:#242a30;border-radius:99px;overflow:hidden}.volbar div{height:100%;background:var(--a)}
+.adapt{background:#151b20;border-left:3px solid var(--a);padding:11px 12px;border-radius:10px;margin:10px 0;color:#dce3e8;font-size:13px}
+
+
+.goalgrid{display:grid;grid-template-columns:1fr;gap:10px}
+.goalrow{display:flex;gap:8px;flex-wrap:wrap}
+.textcoach{width:100%;background:#0f1316;color:var(--text);border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:16px}
+.reason{background:#101417;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.reason b{color:var(--text)}
+
+
+/* v11 mobile polish */
+main{padding-bottom:150px!important}
+nav{z-index:20}
+.card:last-child{margin-bottom:24px}
+.primary-goal-note{font-size:13px;color:var(--muted);margin-top:8px}
+.coach-explain{background:#101417;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.coach-explain b{color:var(--text)}
+@media(max-width:420px){
+  h1{font-size:30px}
+  .chips{gap:8px}
+  button,.btn{min-height:48px}
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav><div>
+<button id="nToday" class="on" onclick="show('Today')">Today</button>
+<button id="nCoach" onclick="show('Coach')">Coach</button>
+<button id="nScan" onclick="show('Scan')">Scan Equipment</button>
+<button id="nProgress" onclick="show('Progress')">Progress</button>
+</div></nav>
+<script>
+const APP_VERSION="v11";
+const DEFAULTS={
+  name:"Nathan", time:45, focus:"Abs & Core", whoop:null,
+  history:[], exerciseHistory:{}, session:null,
+  weekly:{days:3,plan:null,generated:null},
+  preferences:{cardio:"balanced"},
+  primaryGoal:"Leaner Waist + Defined Abs",
+  todayFocus:"Coach Decide",
+  coachNote:""
+};
+let S=Object.assign({},DEFAULTS,JSON.parse(localStorage.getItem("adaptiveCoachV9")||"{}"));
+
+const MUSCLE_WEIGHTS={
+  "Leg Press":{quads:3,glutes:2,hamstrings:1},
+  "Chest Press":{chest:3,triceps:2,shoulders:1},
+  "Lat Pulldown":{back:3,biceps:2},
+  "Cable Crunch":{core:3},
+  "Pallof Press":{core:3},
+  "Side Plank":{core:3,shoulders:1},
+  "Plank":{core:3,shoulders:1},
+  "Romanian Deadlift":{hamstrings:3,glutes:3,back:1},
+  "Seated Cable Row":{back:3,biceps:2},
+  "Incline Dumbbell Press":{chest:3,shoulders:2,triceps:2},
+  "Cable Fly":{chest:3},
+  "Face Pull":{back:2,shoulders:2},
+  "Dumbbell Curl":{biceps:3},
+  "Rope Pressdown":{triceps:3},
+  "Hammer Curl":{biceps:3,forearms:2},
+  "Shoulder Press":{shoulders:3,triceps:2},
+  "Lateral Raise":{shoulders:3},
+  "Walking Lunge":{quads:2,glutes:3,hamstrings:2},
+  "Leg Curl":{hamstrings:3},
+  "Treadmill":{cardio:2,legs:1},
+  "Incline Treadmill":{cardio:3,legs:1}
+};
+
+const EX={
+"Treadmill":{area:"Warm-up / conditioning",mode:"cardio",duration:6,speed:3.2,incline:3,muscles:["quads","glutes","calves","core"],how:"Walk or jog at a controlled pace. Stay tall and let your arms swing naturally.",mistake:"Avoid hanging on the rails.",alts:["Bike","Elliptical"]},
+"Incline Treadmill":{area:"Conditioning",mode:"cardio",duration:7,speed:3.3,incline:7,muscles:["quads","glutes","calves","core"],how:"Use a brisk pace and moderate incline. Keep the effort controlled rather than all-out.",mistake:"Avoid gripping or leaning heavily on the rails.",alts:["Bike Intervals","Elliptical"]},
+"Leg Press":{area:"Legs",mode:"strength",sets:3,reps:"8–12",rest:90,muscles:["quads","glutes","hamstrings"],how:"Feet shoulder-width. Lower under control and press through the whole foot.",mistake:"Do not lock the knees or let your lower back roll off the pad.",alts:["Goblet Squat","Hack Squat"]},
+"Chest Press":{area:"Chest / triceps",mode:"strength",sets:3,reps:"8–12",rest:90,muscles:["chest","triceps","shoulders"],how:"Handles around mid-chest. Keep your back supported and press smoothly.",mistake:"Do not shrug or bounce the weight.",alts:["Dumbbell Bench Press","Push-up"]},
+"Lat Pulldown":{area:"Back / biceps",mode:"strength",sets:3,reps:"8–12",rest:90,muscles:["lats","biceps","upperback"],how:"Sit tall and pull toward your upper chest by driving your elbows down.",mistake:"Do not pull behind your neck or swing backward.",alts:["Assisted Pull-up","Seated Cable Row"]},
+"Cable Crunch":{area:"Abs",mode:"strength",sets:2,reps:"10–15",rest:60,muscles:["abs"],how:"Curl the rib cage toward the pelvis while keeping the hips relatively still.",mistake:"Do not simply pull with your arms.",alts:["Ab Crunch Machine","Dead Bug"]},
+"Pallof Press":{area:"Obliques / core",mode:"strength",sets:2,reps:"10 each side",rest:45,muscles:["obliques","core"],how:"Stand sideways to the cable, brace, and press straight out without rotating.",mistake:"Keep hips and shoulders square.",alts:["Cable Wood Chop","Side Plank"]},
+"Side Plank":{area:"Obliques / core",mode:"timed",sets:2,duration:35,rest:45,muscles:["obliques","core","shoulders"],how:"Elbow under shoulder. Lift your hips and hold a straight line.",mistake:"Do not let the hips sag or rotate.",alts:["Suitcase Carry","Pallof Hold"]},
+"Plank":{area:"Core",mode:"timed",sets:2,duration:40,rest:45,muscles:["abs","core","shoulders"],how:"Brace firmly and keep a straight line from shoulders through heels.",mistake:"Do not let the lower back sag.",alts:["Dead Bug","Pallof Press"]},
+"Romanian Deadlift":{area:"Hamstrings / glutes",mode:"strength",sets:3,reps:"8–10",rest:90,muscles:["hamstrings","glutes","lowerback"],how:"Push your hips back while keeping a neutral spine.",mistake:"Do not round your back.",alts:["Leg Curl","Hip Hinge Machine"]},
+"Seated Cable Row":{area:"Back",mode:"strength",sets:3,reps:"8–12",rest:75,muscles:["lats","upperback","biceps"],how:"Sit tall and pull the handle toward your lower ribs.",mistake:"Do not use momentum.",alts:["Chest-supported Row","Machine Row"]},
+"Incline Dumbbell Press":{area:"Upper chest",mode:"strength",sets:3,reps:"8–12",rest:90,muscles:["chest","shoulders","triceps"],how:"Bench around 30°. Press up and slightly inward.",mistake:"Avoid excessive lower-back arching.",alts:["Incline Chest Press Machine"]},
+"Cable Fly":{area:"Chest",mode:"strength",sets:2,reps:"10–15",rest:60,muscles:["chest"],how:"Keep a soft bend in the elbows and bring hands together in front of the chest.",mistake:"Do not overstretch.",alts:["Pec Deck"]},
+"Face Pull":{area:"Upper back / rear delts",mode:"strength",sets:2,reps:"12–15",rest:60,muscles:["upperback","shoulders"],how:"Pull the rope toward the forehead with elbows high.",mistake:"Keep the neck relaxed.",alts:["Reverse Pec Deck"]},
+"Dumbbell Curl":{area:"Biceps",mode:"strength",sets:2,reps:"10–12",rest:60,muscles:["biceps"],how:"Keep elbows near your sides and curl without swinging.",mistake:"Do not use torso momentum.",alts:["Cable Curl"]},
+"Rope Pressdown":{area:"Triceps",mode:"strength",sets:2,reps:"10–12",rest:60,muscles:["triceps"],how:"Keep elbows pinned near the ribs and straighten the arms.",mistake:"Do not let the shoulders roll forward.",alts:["Triceps Press Machine"]},
+"Hammer Curl":{area:"Biceps",mode:"strength",sets:2,reps:"10–12",rest:60,muscles:["biceps","forearms"],how:"Use a neutral grip and controlled curl.",mistake:"Keep the torso still.",alts:["Cable Rope Curl"]},
+"Shoulder Press":{area:"Shoulders",mode:"strength",sets:3,reps:"8–12",rest:90,muscles:["shoulders","triceps"],how:"Begin with handles around ear level and press smoothly upward.",mistake:"Do not aggressively arch the back.",alts:["Dumbbell Shoulder Press"]},
+"Lateral Raise":{area:"Side delts",mode:"strength",sets:2,reps:"12–15",rest:60,muscles:["shoulders"],how:"Raise light dumbbells to roughly shoulder height.",mistake:"Do not shrug or swing.",alts:["Cable Lateral Raise"]},
+"Walking Lunge":{area:"Legs / glutes",mode:"strength",sets:2,reps:"8 each side",rest:75,muscles:["quads","glutes","hamstrings"],how:"Take controlled steps and lower comfortably.",mistake:"Keep the front knee tracking with the toes.",alts:["Split Squat"]},
+"Leg Curl":{area:"Hamstrings",mode:"strength",sets:2,reps:"10–12",rest:60,muscles:["hamstrings"],how:"Adjust the pad just above the heels and curl smoothly.",mistake:"Do not bounce.",alts:["Swiss-ball Leg Curl"]}
+};
+
+const BASE_PLANS={
+"Abs & Core":["Treadmill","Leg Press","Chest Press","Lat Pulldown","Cable Crunch","Pallof Press","Side Plank","Incline Treadmill"],
+"Balanced":["Treadmill","Leg Press","Chest Press","Lat Pulldown","Romanian Deadlift","Seated Cable Row","Plank","Incline Treadmill"],
+"Chest":["Treadmill","Leg Press","Chest Press","Lat Pulldown","Incline Dumbbell Press","Cable Fly","Plank"],
+"Back":["Treadmill","Leg Press","Lat Pulldown","Chest Press","Seated Cable Row","Face Pull","Plank"],
+"Arms":["Treadmill","Leg Press","Chest Press","Lat Pulldown","Dumbbell Curl","Rope Pressdown","Hammer Curl"],
+"Shoulders":["Treadmill","Leg Press","Chest Press","Lat Pulldown","Shoulder Press","Lateral Raise","Face Pull"],
+"Legs":["Treadmill","Leg Press","Romanian Deadlift","Chest Press","Lat Pulldown","Walking Lunge","Leg Curl"]
+};
+
+function save(){localStorage.setItem("adaptiveCoachV9",JSON.stringify(S))}
+function n(v,d=1){return v==null||v===""?"—":Number(v).toFixed(d)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function parseWhoop(){
+  const p=new URLSearchParams(location.search);
+  if(!p.has("whoop"))return;
+  S.whoop={recovery:+p.get("recovery"),strain:+p.get("strain"),hrv:+p.get("hrv"),rhr:+p.get("rhr"),sleepPerformance:+p.get("sleepPerformance"),sleepHours:+p.get("sleepHours"),weightLb:+p.get("weightLb"),heightCm:+p.get("heightCm"),maxHr:+p.get("maxHr"),workoutStrain:p.get("workoutStrain")?+p.get("workoutStrain"):null,updated:new Date().toISOString()};
+  save(); history.replaceState({},document.title,location.pathname);
+}
+parseWhoop();
+
+function readiness(){
+  if(!S.whoop)return{level:"Unknown",score:null,color:"",factor:1};
+  let score=S.whoop.recovery;
+  if(S.whoop.sleepPerformance<70)score-=8; else if(S.whoop.sleepPerformance<80)score-=4;
+  if(S.whoop.strain>15)score-=8; else if(S.whoop.strain>12)score-=4;
+  score=clamp(score,0,100);
+  if(score>=75)return{level:"High",score,color:"accent",factor:1};
+  if(score>=45)return{level:"Moderate",score,color:"amber",factor:.82};
+  return{level:"Low",score,color:"red",factor:.65};
+}
+
+function historyFor(name){return (S.exerciseHistory[name]||[]).slice().reverse()}
+function latest(name){const h=historyFor(name);return h.length?h[0]:null}
+function recentEffort(name){
+  const h=historyFor(name).filter(x=>x.effort).slice(0,3);
+  if(!h.length)return null;
+  const map={easy:1,good:2,hard:3,fail:4};
+  return h.reduce((a,x)=>a+map[x.effort],0)/h.length;
+}
+
+function targetFor(e){
+  const last=latest(e.name), rd=readiness();
+  let t={...e,coachNote:""};
+  if(e.mode==="strength"){
+    if(last && last.weight){
+      let w=last.weight, effort=last.effort||"good", reps=Number(last.reps||0);
+      if(effort==="easy" || (effort==="good" && reps>=12)) w+=5;
+      if(effort==="hard") w=Math.max(5,w-5);
+      if(effort==="fail") w=Math.max(5,w-10);
+      if(rd.level==="Low")w=Math.max(5,Math.round(w*.9/5)*5);
+      else if(rd.level==="Moderate")w=Math.max(5,Math.round(w*.95/5)*5);
+      t.targetWeight=w;
+      t.coachNote=`Based on your last ${e.name}, start around ${w} lb.`;
+    } else t.coachNote="No prior benchmark yet — start conservatively and leave 2–3 good reps in reserve.";
+  }
+  if(e.mode==="timed"){
+    if(last && last.duration){
+      let d=last.duration;
+      if(last.effort==="easy")d+=5;
+      if(last.effort==="hard"||last.effort==="fail")d=Math.max(15,d-5);
+      if(rd.level==="Low")d=Math.round(d*.85);
+      t.duration=d;
+      t.coachNote=`Last hold: ${last.duration} sec. Today's target: ${d} sec.`;
+    }
+  }
+  if(e.mode==="cardio"){
+    const max=S.whoop?.maxHr||185;
+    let zoneLow=Math.round(max*(rd.level==="Low"?.55:.60));
+    let zoneHigh=Math.round(max*(rd.level==="High"?.75:.70));
+    if(e.name==="Incline Treadmill" && rd.level==="High"){zoneLow=Math.round(max*.68);zoneHigh=Math.round(max*.80)}
+    t.hrZone=[zoneLow,zoneHigh];
+    if(last && last.speed){
+      t.speed=Number(last.speed)+(last.effort==="easy"?.1:0);
+      t.incline=Number(last.incline||e.incline)+(last.effort==="easy"?.5:0);
+    }
+    t.coachNote=`Aim for roughly ${zoneLow}–${zoneHigh} bpm. Adjust speed/incline to stay controlled.`;
+  }
+  if(rd.level==="Low" && t.mode!=="cardio")t.sets=Math.max(1,(t.sets||1)-1);
+  if(rd.level==="Moderate" && (t.sets||1)>=3)t.sets-=1;
+  return t;
+}
+
+function muscleVolume(days=7){
+  const cutoff=Date.now()-days*864e5, totals={chest:0,back:0,legs:0,shoulders:0,biceps:0,triceps:0,core:0,cardio:0};
+  for(const w of S.history){
+    if(new Date(w.date).getTime()<cutoff)continue;
+    const names=[...new Set((w.completed||[]).map(x=>x.name))];
+    for(const name of names){
+      const mw=MUSCLE_WEIGHTS[name]||{};
+      for(const [m,v] of Object.entries(mw)){
+        let key=m;
+        if(["quads","glutes","hamstrings"].includes(m))key="legs";
+        if(["abs"].includes(m))key="core";
+        if(key in totals)totals[key]+=v;
+      }
+    }
+  }
+  return totals;
+}
+
+function balancedFocus(){
+  const v=muscleVolume(7);
+  const core=["chest","back","legs","shoulders","core"];
+  core.sort((a,b)=>v[a]-v[b]);
+  const low=core[0];
+  return ({chest:"Chest",back:"Back",legs:"Legs",shoulders:"Shoulders",core:"Abs & Core"})[low]||"Balanced";
+}
+
+function sequence(names){
+  const pri={cardio:0,compound:1,focus:2,accessory:3,core:4,finish:5};
+  const compound=new Set(["Leg Press","Chest Press","Lat Pulldown","Romanian Deadlift","Seated Cable Row","Incline Dumbbell Press","Shoulder Press"]);
+  return names.slice().sort((a,b)=>{
+    function rank(n){
+      if(n==="Treadmill")return 0;
+      if(n==="Incline Treadmill")return 5;
+      if(compound.has(n))return 1;
+      if(["Cable Crunch","Pallof Press","Side Plank","Plank"].includes(n))return 4;
+      return 3;
+    }
+    return rank(a)-rank(b);
+  });
+}
+
+function buildPlan(){
+  let focus=resolveTodayFocus();
+  let names=(BASE_PLANS[focus]||BASE_PLANS.Balanced).slice();
+  if(S.time<=20)names=names.slice(0,4);
+  else if(S.time<=30)names=names.slice(0,5);
+  names=sequence(names);
+  return names.map(name=>targetFor({name,...EX[name]}));
+}
+
+function prescription(e){
+  if(e.mode==="cardio")return `${e.duration} min · ${n(e.speed)} mph · ${n(e.incline)}%${e.hrZone?` · HR ${e.hrZone[0]}–${e.hrZone[1]}`:""}`;
+  if(e.mode==="timed")return `${e.sets} × ${e.duration} sec`;
+  return `${e.sets} × ${e.reps}${e.targetWeight?` · ~${e.targetWeight} lb`:""}`;
+}
+
+function decision(){
+ const r=readiness(),vol=muscleVolume(7);
+ if(r.level==="High")return{title:"Full planned workout",detail:"Recovery supports normal training. The coach will progress loads when your recent sets were comfortable.",target:"10–13"};
+ if(r.level==="Moderate")return{title:"Train, with controlled volume",detail:"Keep your main work, but accessories and load progression are moderated.",target:"8–11"};
+ if(r.level==="Low")return{title:"Recovery-biased session",detail:"The coach will reduce sets/load and emphasize controlled cardio rather than hard intervals.",target:"6–9"};
+ return{title:"Connect WHOOP to personalize intensity",detail:"WHOOP sets the starting plan; your exercise performance then adjusts it in real time.",target:"—"};
+}
+
+function generateWeekly(){
+ const today=new Date(), f1=goalDefaultFocus()==="Balanced"?balancedFocus():goalDefaultFocus();
+ const focusList=[f1, f1==="Legs"?"Back":"Legs", f1==="Chest"?"Back":"Chest"];
+ const days=[];
+ for(let i=0;i<S.weekly.days;i++){
+   let d=new Date(today);d.setDate(today.getDate()+i*2);
+   days.push({date:d.toISOString(),focus:focusList[i%focusList.length],time:S.time});
+ }
+ S.weekly.plan=days;S.weekly.generated=new Date().toISOString();save();
+}
+
+function nav(x){["Today","Coach","Scan","Progress"].forEach(y=>document.getElementById("n"+y).classList.toggle("on",x===y))}
+function show(x){nav(x);scrollTo(0,0);if(x==="Today")renderToday();if(x==="Coach")renderCoachHome();if(x==="Scan")renderScan();if(x==="Progress")renderProgress()}
+
+function volumeBars(){
+ const v=muscleVolume(7),mx=Math.max(1,...Object.values(v));
+ return Object.entries(v).map(([k,val])=>`<div class="volumeRow"><span class="small">${k}</span><div class="volbar"><div style="width:${Math.round(val/mx*100)}%"></div></div><b>${val}</b></div>`).join("");
+}
+
+
+const PRIMARY_GOALS=[
+  "Leaner Waist + Defined Abs",
+  "Build Legs",
+  "Build Arms",
+  "Build Chest",
+  "Build Back",
+  "Build Shoulders",
+  "General Fitness"
+];
+
+const TODAY_FOCUS=[
+  "Coach Decide",
+  "Abs & Core",
+  "Chest",
+  "Back",
+  "Arms",
+  "Shoulders",
+  "Legs",
+  "Full Body"
+];
+
+function goalDefaultFocus(){
+  const map={
+    "Leaner Waist + Defined Abs":"Abs & Core",
+    "Build Legs":"Legs",
+    "Build Arms":"Arms",
+    "Build Chest":"Chest",
+    "Build Back":"Back",
+    "Build Shoulders":"Shoulders",
+    "General Fitness":"Balanced"
+  };
+  return map[S.primaryGoal]||"Balanced";
+}
+
+function resolveTodayFocus(){
+  if(S.todayFocus && S.todayFocus!=="Coach Decide"){
+    return S.todayFocus==="Full Body" ? "Balanced" : S.todayFocus;
+  }
+  const balance=balancedFocus();
+  const goal=goalDefaultFocus();
+
+  // Coach decision blends primary goal and recent muscle balance.
+  const vol=muscleVolume(7);
+  const goalKey={
+    "Abs & Core":"core","Legs":"legs","Arms":"biceps","Chest":"chest",
+    "Back":"back","Shoulders":"shoulders","Balanced":""
+  }[goal];
+
+  // If goal area is undertrained or close to the lowest-volume region, keep the primary goal.
+  if(goalKey && (vol[goalKey]||0) <= Math.min(...Object.values(vol))+3) return goal;
+
+  // Otherwise use the lowest-volume area to avoid imbalance.
+  return balance;
+}
+
+function focusReason(){
+  if(S.todayFocus && S.todayFocus!=="Coach Decide"){
+    return `You selected <b>${S.todayFocus}</b> for today. Your primary goal remains <b>${S.primaryGoal}</b>, so the coach will preserve some work that supports that longer-term objective without letting it dominate today's session.`;
+  }
+  const f=resolveTodayFocus();
+  return `Coach Decide selected <b>${f}</b> by combining your primary goal (<b>${S.primaryGoal}</b>), recent 7-day muscle volume, WHOOP readiness, and workout history.`;
+}
+
+function parseCoachText(){
+  const el=document.getElementById("coachText");
+  const text=(el?.value||"").toLowerCase().trim();
+  if(!text)return;
+
+  const soreness=[];
+  ["arms","chest","back","legs","shoulders","abs","core"].forEach(x=>{
+    if(text.includes(x+" sore") || text.includes(x+" hurt") || text.includes("sore "+x)) soreness.push(x);
+  });
+
+  let chosen=null;
+  const map=[
+    ["abs","Abs & Core"],["core","Abs & Core"],["love handles","Abs & Core"],
+    ["leg","Legs"],["arm","Arms"],["chest","Chest"],["back","Back"],
+    ["shoulder","Shoulders"],["full body","Full Body"]
+  ];
+  for(const [k,v] of map){
+    if(text.includes(k) && !soreness.some(s=>k.includes(s))) chosen=v;
+  }
+
+  const timeMatch=text.match(/(\d+)\s*(min|minute)/);
+  if(timeMatch){
+    const t=Number(timeMatch[1]);
+    const opts=[20,30,45,60];
+    S.time=opts.reduce((a,b)=>Math.abs(b-t)<Math.abs(a-t)?b:a);
+  }
+
+  if(chosen) S.todayFocus=chosen;
+  if(text.includes("you decide") || text.includes("coach decide")) S.todayFocus="Coach Decide";
+
+  S.coachNote=text;
+  save();
+  renderToday();
+}
+
+function allocationSummary(){
+  const f=resolveTodayFocus();
+  const primary=goalDefaultFocus();
+  let primaryShare = f===primary ? "high" : "moderate";
+  return {
+    focus:f,
+    text:`Today is <b>${f}</b>-focused. The coach will keep a ${primaryShare} amount of work supporting your primary goal, <b>${S.primaryGoal}</b>, while preserving enough full-body training for balance and overall fitness.`
+  };
+}
+
+function renderToday(){
+ const w=S.whoop,r=readiness(),d=decision(),p=buildPlan(),autoFocus=resolveTodayFocus();
+ if(!S.weekly.plan)generateWeekly();
+ document.getElementById("app").innerHTML=`
+ <h1>Good ${new Date().getHours()<12?"morning":new Date().getHours()<18?"afternoon":"evening"}, ${S.name}</h1>
+ <p>Your adaptive personal-training coach.</p>
+ <div class="card"><div class="row"><div><div class="label">Today's readiness</div><div class="bigrec ${r.color}">${r.level}${r.score!=null?" · "+Math.round(r.score):""}</div></div><a class="btn secondary" href="/api/whoop/start">${w?"Refresh":"Connect"} WHOOP</a></div>
+ ${w?`<div class="grid" style="margin-top:14px"><div class="metric"><div class="label">Recovery</div><div class="value accent">${Math.round(w.recovery)}%</div></div><div class="metric"><div class="label">Day strain</div><div class="value">${n(w.strain)}</div></div><div class="metric"><div class="label">HRV</div><div class="value">${Math.round(w.hrv)}<span class="small"> ms</span></div></div><div class="metric"><div class="label">Resting HR</div><div class="value">${Math.round(w.rhr)}<span class="small"> bpm</span></div></div><div class="metric"><div class="label">Sleep performance</div><div class="value">${Math.round(w.sleepPerformance)}%</div></div><div class="metric"><div class="label">Sleep</div><div class="value">${n(w.sleepHours)}<span class="small"> hr</span></div></div></div>`:""}</div>
+ <div class="card"><div class="label">Coach decision</div><h2>${d.title}</h2><p>${d.detail}</p><span class="pill">Target strain ${d.target}</span>${S.focus==="Balanced"?`<div class="adapt">Weekly muscle balance suggests emphasizing <b>${autoFocus}</b> today.</div>`:""}</div>
+ <div class="card"><h2>How much time?</h2><div class="chips">${[20,30,45,60].map(t=>`<button class="${S.time===t?'on':''}" onclick="S.time=${t};save();renderToday()">${t} min</button>`).join("")}</div></div>
+ <div class="card">
+   <div class="label">Long-term direction</div>
+   <h2>Primary Goal</h2>
+   <div class="primary-goal-note">This stays active until you change it. Today’s focus can temporarily override it without erasing it.</div>
+   <div class="chips">${PRIMARY_GOALS.map(g=>`<button class="${S.primaryGoal===g?'on':''}" onclick="S.primaryGoal='${g}';S.weekly.plan=null;save();renderToday()">${g}</button>`).join("")}</div>
+   <p class="small" style="margin-top:10px">This stays in place until you change it and influences weekly programming, progression and exercise allocation.</p>
+ </div>
+
+ <div class="card">
+   <div class="label">Today only</div>
+   <h2>What do you want to work on today?</h2>
+   <div class="primary-goal-note">Choose a body area, Full Body, or let the coach decide based on WHOOP, recent training and your primary goal.</div>
+   <div class="chips">${TODAY_FOCUS.map(f=>`<button class="${S.todayFocus===f?'on':''}" onclick="S.todayFocus='${f}';save();renderToday()">${f}</button>`).join("")}</div>
+   <div class="reason">${focusReason()}</div>
+ </div>
+
+ <div class="card">
+   <div class="label">Tell your coach</div>
+   <h2>Or just say what you want</h2>
+   <input id="coachText" class="textcoach" type="text" placeholder="e.g. My arms are sore — focus on legs for 30 minutes">
+   <button class="secondary full" style="margin-top:10px" onclick="parseCoachText()">Update today's plan</button>
+   ${S.coachNote?`<p class="small" style="margin-top:8px">Last instruction: “${S.coachNote}”</p>`:""}
+ </div>
+
+ <div class="card">
+   <div class="label">Today's recommendation</div>
+   <h2>Full Body + ${resolveTodayFocus()} · ${S.time} min</h2>
+   <p>${p.length} exercises. The plan accounts for readiness, your primary goal, today's emphasis, recent performance and muscle balance.</p>
+   <div class="reason">${allocationSummary().text}</div>
+   <button class="secondary full" style="margin-top:10px" onclick="renderOverview()">View full workout</button>
+   <button class="full" style="margin-top:8px" onclick="startSession()">Start guided workout</button>
+ </div>
+ <div class="card"><div class="row"><h2 style="margin:0">Weekly coach</h2><button class="secondary" onclick="generateWeekly();renderToday()">Refresh</button></div>
+ <div class="weekgrid">${(S.weekly.plan||[]).map((x,i)=>`<div class="weekcard"><div class="label">${new Date(x.date).toLocaleDateString(undefined,{weekday:"short"})}</div><b>${x.focus}</b><div class="small">${x.time} min</div></div>`).join("")}</div></div>`;
+}
+
+function renderOverview(){
+ const p=buildPlan(),d=decision(),r=readiness();
+ document.getElementById("app").innerHTML=`<div class="label">Workout overview</div><h1>${resolveTodayFocus()} emphasis</h1><p>Everything the coach intends to do, in order.</p><div class="reason">${focusReason()}</div><div class="coach-explain">${allocationSummary().text}</div>
+ <div class="card"><span class="pill">${S.time} min</span><span class="pill">${p.length} exercises</span><span class="pill">${r.level} readiness</span><span class="pill">Target strain ${d.target}</span></div>
+ <div class="card"><h2>Full workout</h2>${p.map((e,i)=>`<div class="exercise"><div class="row"><div><div class="label">${i+1}. ${e.area}</div><div style="font-size:18px;font-weight:850">${e.name}</div><div class="small">${e.coachNote||""}</div></div><div style="text-align:right;font-weight:850">${prescription(e)}</div></div></div>`).join("")}</div>
+ <button class="full" onclick="startSession()">Start this workout</button><button class="ghost full" style="margin-top:8px" onclick="show('Today')">Change workout</button>`;
+}
+
+function startSession(){S.session={started:new Date().toISOString(),index:0,set:1,plan:buildPlan(),completed:[],timer:0,hardCount:0,easyCount:0,adaptNote:""};save();show("Coach")}
+function renderCoachHome(){if(!S.session){document.getElementById("app").innerHTML=`<h1>Coach</h1><div class="card"><h2>No workout in progress</h2><button class="full" onclick="show('Today')">Build today's workout</button></div>`;return}renderExercise()}
+
+function renderExercise(){
+ const ss=S.session,p=ss.plan,i=ss.index;if(i>=p.length){finishSession();return}
+ const e=p[i],hist=historyFor(e.name),last=latest(e.name);
+ document.getElementById("app").innerHTML=`<div class="label">Guided workout · exercise ${i+1} of ${p.length}</div><h1>${e.name}</h1>
+ <div class="progressbar"><div style="width:${Math.round(i/p.length*100)}%"></div></div>
+ ${ss.adaptNote?`<div class="adapt">${ss.adaptNote}</div>`:""}
+ <div class="card"><div class="label">Today's target</div><div class="rx">${prescription(e)}</div><p>${e.coachNote||""}</p><p>${e.how}</p><div class="notice warn"><b>Watch for:</b> ${e.mistake}</div></div>
+ <div class="card"><div class="label">Your benchmark</div><h3>${benchmarkText(e.name)}</h3>${prText(e.name)?`<div class="pr">${prText(e.name)}</div>`:""}${hist.length>=2?trendSVG(e.name):""}</div>
+ ${entryUI(e)}
+ <button class="ghost full" onclick="substitute()">Swap this exercise</button>`;
+}
+
+function benchmarkText(name){
+ const x=latest(name);if(!x)return "No prior benchmark yet.";
+ if(x.mode==="cardio")return `Last: ${x.duration} min · ${x.speed} mph · ${x.incline}% incline`;
+ if(x.mode==="timed")return `Last: ${x.duration} sec × ${x.sets||1}`;
+ return `Last: ${x.weight||"—"} lb × ${x.reps||"—"} reps`;
+}
+
+function prText(name){
+ const h=historyFor(name);if(h.length<2)return "";
+ const mode=h[0].mode;
+ if(mode==="strength"){
+   const best=Math.max(...h.map(x=>(x.weight||0)*(x.reps||0)));
+   const latestScore=(h[0].weight||0)*(h[0].reps||0);
+   if(latestScore>=best)return "🏆 Current session benchmark is at your best recorded volume.";
+ } else if(mode==="timed"){
+   const best=Math.max(...h.map(x=>x.duration||0));
+   return `Best hold: ${best} sec`;
+ } else if(mode==="cardio"){
+   const best=Math.max(...h.map(x=>(x.speed||0)));
+   return `Best logged speed: ${best.toFixed(1)} mph`;
+ }
+ return "";
+}
+
+function trendSVG(name){
+ const h=historyFor(name).slice(0,8).reverse(), mode=h[0].mode;
+ let vals=h.map(x=>mode==="strength"?(x.weight||0)*(x.reps||0):mode==="timed"?(x.duration||0):(x.speed||0));
+ let min=Math.min(...vals),max=Math.max(...vals);if(max===min)max=min+1;
+ const pts=vals.map((v,i)=>`${8+i*(180/(vals.length-1||1))},${70-(v-min)/(max-min)*52}`).join(" ");
+ return `<div class="trend"><svg viewBox="0 0 196 78" width="100%" height="100%"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="3" vector-effect="non-scaling-stroke"/></svg></div>`;
+}
+
+function entryUI(e){
+ const last=latest(e.name)||{};
+ if(e.mode==="cardio")return `<div class="card"><h2>Log cardio</h2>
+ <div class="setline"><span>Time</span><div><input id="duration" type="number" value="${e.duration}"> <span class="small">min</span></div></div>
+ <div class="setline"><span>Speed</span><div><input id="speed" type="number" step=".1" value="${n(e.speed)}"> <span class="small">mph</span></div></div>
+ <div class="setline"><span>Incline</span><div><input id="incline" type="number" step=".5" value="${n(e.incline)}"> <span class="small">%</span></div></div>
+ ${e.hrZone?`<div class="notice">Target HR: ${e.hrZone[0]}–${e.hrZone[1]} bpm</div>`:""}<button class="full" style="margin-top:10px" onclick="completeCardio()">Complete</button></div>`;
+ if(e.mode==="timed")return `<div class="card"><h2>Set ${S.session.set} of ${e.sets}</h2><div class="setline"><span>Hold time</span><div><input id="duration" type="number" value="${e.duration}"> <span class="small">sec</span></div></div><button class="full" onclick="completeTimed()">Complete set</button></div>`;
+ return `<div class="card"><h2>Set ${S.session.set} of ${e.sets}</h2><div class="setline"><span>Weight</span><div><input id="weight" type="number" value="${e.targetWeight||last.weight||""}"> <span class="small">lb</span></div></div><div class="setline"><span>Reps</span><div><input id="reps" type="number" value="${last.reps||10}"></div></div><button class="full" onclick="completeStrength()">Complete set</button></div>`;
+}
+
+function askEffort(payload){
+ S.session.pending=payload;save();
+ document.getElementById("app").innerHTML=`<h1>How did that feel?</h1><p>This is how the coach learns your real capability.</p><div class="card"><div class="rating"><button onclick="effort('easy')">Easy</button><button onclick="effort('good')">About right</button><button onclick="effort('hard')">Hard</button></div><button class="ghost full" style="margin-top:8px" onclick="effort('fail')">Couldn't finish cleanly</button></div>`;
+}
+
+function effort(level){
+ const p=S.session.pending,e=S.session.plan[S.session.index];
+ p.effort=level; delete S.session.pending;
+ if(level==="hard"||level==="fail")S.session.hardCount++;
+ if(level==="easy")S.session.easyCount++;
+ if(S.session.hardCount>=2){
+   S.session.adaptNote="You've reported multiple hard sets. I reduced the remaining strength volume/load for today.";
+   for(let j=S.session.index+1;j<S.session.plan.length;j++){
+     let x=S.session.plan[j];
+     if(x.mode==="strength"){x.sets=Math.max(1,x.sets-1);if(x.targetWeight)x.targetWeight=Math.max(5,Math.round(x.targetWeight*.9/5)*5)}
+   }
+ } else if(S.session.easyCount>=2){
+   S.session.adaptNote="Your first exercises are moving easily. I’ll allow modest progression on upcoming strength work.";
+   for(let j=S.session.index+1;j<S.session.plan.length;j++){
+     let x=S.session.plan[j];if(x.mode==="strength"&&x.targetWeight)x.targetWeight+=5;
+   }
+ }
+ completePayload(e,p);save();
+}
+
+function completePayload(e,p){
+ if(e.mode==="cardio"){pushHist(e.name,p);S.session.completed.push({name:e.name,...p});S.session.index++;renderExercise();return}
+ S.session.completed.push({name:e.name,...p,set:S.session.set});
+ if(S.session.set<e.sets){S.session.set++;S.session.timer=e.rest;save();renderTimer(e)}
+ else{pushHist(e.name,{...p,sets:e.sets});S.session.index++;S.session.set=1;renderExercise()}
+}
+function pushHist(name,obj){S.exerciseHistory[name]=S.exerciseHistory[name]||[];S.exerciseHistory[name].push({date:new Date().toISOString(),...obj});if(S.exerciseHistory[name].length>50)S.exerciseHistory[name]=S.exerciseHistory[name].slice(-50)}
+function completeCardio(){askEffort({mode:"cardio",duration:+duration.value,speed:+speed.value,incline:+incline.value})}
+function completeTimed(){askEffort({mode:"timed",duration:+duration.value})}
+function completeStrength(){askEffort({mode:"strength",weight:+weight.value,reps:+reps.value})}
+
+function renderTimer(e){document.getElementById("app").innerHTML=`<h1>Rest</h1><div class="card"><div id="timer" class="timer">${S.session.timer}</div><p style="text-align:center">Next: set ${S.session.set} of ${e.sets}</p><div class="timerBtns"><button class="secondary" onclick="skipTimer()">Skip</button><button onclick="addTime()">+15 sec</button></div></div>`;runTimer()}
+let TI=null;function runTimer(){clearInterval(TI);TI=setInterval(()=>{S.session.timer--;if(S.session.timer<=0){clearInterval(TI);renderExercise();return}save();if(document.getElementById("timer"))timer.textContent=S.session.timer},1000)}
+function skipTimer(){clearInterval(TI);renderExercise()}function addTime(){S.session.timer+=15;save();timer.textContent=S.session.timer}
+
+function substitute(){const e=S.session.plan[S.session.index];document.getElementById("app").innerHTML=`<h1>Swap ${e.name}</h1><div class="card">${e.alts.map(a=>`<button class="secondary full" style="margin:5px 0" onclick="chooseAlt('${a.replaceAll("'","\\'")}')">${a}</button>`).join("")}</div><button class="ghost full" onclick="renderExercise()">Keep ${e.name}</button>`}
+function chooseAlt(name){const old=S.session.plan[S.session.index];S.session.plan[S.session.index]={...old,name,how:"Begin conservatively and follow the equipment setup labels.",mistake:"Do not force the range of motion.",alts:[old.name]};save();renderExercise()}
+
+function finishSession(){
+ const ss=S.session,mins=Math.max(1,Math.round((Date.now()-new Date(ss.started).getTime())/60000));
+ S.history.push({date:new Date().toISOString(),focus:resolveTodayFocus(),plannedTime:S.time,actualMinutes:mins,recovery:S.whoop?.recovery??null,completed:ss.completed});
+ S.session=null;S.weekly.plan=null;save();
+ document.getElementById("app").innerHTML=`<h1>Workout complete</h1><div class="card"><h2>${mins} minutes logged</h2><p>Your performance, effort ratings and benchmarks were saved. Your next plan will use them.</p><button class="full" onclick="show('Progress')">View dashboard</button></div>`;
+}
+
+function renderScan(){document.getElementById("app").innerHTML=`<h1>Scan Equipment</h1><div class="card"><label class="btn secondary full" for="photo">📷 Take or choose a photo</label><input id="photo" style="display:none" type="file" accept="image/*" capture="environment" onchange="preview(event)"><div id="preview"></div></div><p>Photo capture is ready; automatic equipment recognition still needs a vision backend.</p>`}
+function preview(ev){const f=ev.target.files[0];if(!f)return;const u=URL.createObjectURL(f);document.getElementById("preview").innerHTML=`<img src="${u}" style="width:100%;border-radius:15px;margin-top:14px">`}
+
+function renderProgress(){
+ const h=S.history.slice().reverse(),total=h.reduce((a,x)=>a+(x.actualMinutes||x.plannedTime||0),0),vol=muscleVolume(7);
+ document.getElementById("app").innerHTML=`<h1>Progress Dashboard</h1><p class="small">Adaptive Fitness Coach ${APP_VERSION}</p>
+ <div class="kpirow"><div class="kpi"><div class="label">Workouts</div><div class="v">${h.length}</div></div><div class="kpi"><div class="label">Minutes</div><div class="v">${total}</div></div><div class="kpi"><div class="label">Exercises</div><div class="v">${Object.keys(S.exerciseHistory).length}</div></div></div>
+ <div class="card"><h2>7-day muscle balance</h2>${volumeBars()}<div class="adapt">Lowest recent volume: <b>${balancedFocus()}</b>. Balanced mode will automatically use this when building your next workout.</div></div>
+ <div class="card"><h2>Workout history</h2>${h.length?h.map(x=>`<div class="histrow"><div class="row"><div><b>${new Date(x.date).toLocaleDateString()}</b><div class="small">${x.focus} · ${[...new Set((x.completed||[]).map(e=>e.name))].join(", ")}</div></div><div style="text-align:right"><b>${x.actualMinutes||x.plannedTime} min</b><div class="small">${x.recovery!=null?`Recovery ${Math.round(x.recovery)}%`:""}</div></div></div></div>`).join(""):"<p>No completed workouts yet.</p>"}</div>
+ <div class="card"><h2>Exercise progress</h2>${Object.keys(S.exerciseHistory).length?Object.keys(S.exerciseHistory).sort().map(name=>`<div class="histrow"><b>${name}</b><div class="small">${benchmarkText(name)}</div>${prText(name)?`<div class="pr" style="margin-top:6px">${prText(name)}</div>`:""}${historyFor(name).length>=2?trendSVG(name):""}</div>`).join(""):"<p>Your exercise trends will appear as you log workouts.</p>"}</div>`;
+}
+renderToday();
+</script>
+</body>
+</html>
