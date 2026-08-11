@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adaptive Fitness Coach</title>
+<meta name="theme-color" content="#0b0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#0b0d0f;--card:#15191d;--card2:#101417;--line:#2a3138;--muted:#99a3ad;--text:#f7f8f9;--a:#70ff5d;--amber:#ffd166;--red:#ff6b6b}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:560px;margin:auto;padding:26px 18px 110px;min-height:100vh}
+h1{font-size:34px;line-height:1.08;margin:14px 0 8px}h2{font-size:22px;line-height:1.2;margin:8px 0 10px}h3{font-size:18px;margin:6px 0}
+p{color:var(--muted);line-height:1.5;margin:8px 0 12px}.small{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;margin:14px 0}.soft{background:var(--card2)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:#111518;border:1px solid var(--line);border-radius:17px;padding:15px}.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.value{font-size:30px;font-weight:850;margin-top:6px}.accent{color:var(--a)}.amber{color:var(--amber)}.red{color:var(--red)}
+button,.btn{border:0;border-radius:15px;padding:14px 15px;font-size:15px;font-weight:800;background:var(--a);color:#071006;text-decoration:none;text-align:center;display:inline-block}
+button.secondary,.btn.secondary{background:#22282d;color:var(--text)}button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.full{width:100%}.chips{display:flex;flex-wrap:wrap;gap:8px}.chips button{width:auto;background:#1c2227;color:var(--muted);padding:11px 13px}.chips button.on{background:var(--a);color:#071006}
+.notice{background:#102012;color:#bdf6b6;border-radius:14px;padding:13px;font-size:13px;line-height:1.45}.notice.warn{background:#201c10;color:#ffe49a}
+.pill{display:inline-block;border-radius:999px;background:#20262b;color:var(--muted);font-size:12px;padding:7px 9px;margin-right:5px;margin-top:5px}
+.bigrec{font-size:42px;font-weight:900}.exercise{border-top:1px solid var(--line);padding:15px 0}.exercise:first-child{border-top:0}.rx{font-size:25px;font-weight:900;color:var(--a)}
+.progressbar{height:7px;background:#20262b;border-radius:99px;overflow:hidden}.progressbar>div{height:100%;background:var(--a)}
+.guide{background:#111518;border-radius:16px;padding:14px;margin-top:12px}.timer{font-size:54px;font-weight:900;text-align:center;margin:14px 0}.timerBtns{display:flex;gap:8px}.timerBtns button{flex:1}
+.rating{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rating button{background:#20262b;color:var(--text);padding:13px 6px}
+.setline{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line)}.setline:first-child{border-top:0}
+input[type=number]{width:84px;background:#0f1316;border:1px solid var(--line);border-radius:10px;color:white;padding:10px;font-size:16px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0b0d0ff5;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:5}
+nav>div{max-width:560px;margin:auto;display:flex}nav button{flex:1;background:transparent;color:var(--muted);font-size:12px;padding:8px 3px}nav button.on{color:var(--a)}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav><div>
+<button id="nToday" class="on" onclick="show('Today')">Today</button>
+<button id="nCoach" onclick="show('Coach')">Coach</button>
+<button id="nScan" onclick="show('Scan')">Scan Equipment</button>
+<button id="nProgress" onclick="show('Progress')">Progress</button>
+</div></nav>
+<script>
+const DEFAULTS={name:"Nathan",time:45,focus:"Abs & Core",whoop:null,weights:{},history:[],session:null};
+let S=Object.assign({},DEFAULTS,JSON.parse(localStorage.getItem("adaptiveCoachV6")||"{}"));
+
+const LIB={
+"Abs & Core":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Walk briskly at a modest incline. Stay tall, relaxed, and let your arms swing naturally.",mistake:"Avoid leaning heavily on the rails.",alts:["Bike","Elliptical"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Set the seat so your knees start comfortably bent. Feet about shoulder-width. Lower under control, then press through your whole foot.",mistake:"Do not lock your knees or let your lower back curl away from the pad.",alts:["Goblet Squat","Bodyweight Squat"]},
+{name:"Chest Press",area:"Chest / triceps",sets:2,reps:"8–12",rest:75,how:"Adjust the seat so the handles are near mid-chest. Keep your back supported and press smoothly.",mistake:"Do not shrug or bounce the weight.",alts:["Dumbbell Bench Press","Push-up"]},
+{name:"Lat Pulldown",area:"Back / biceps",sets:2,reps:"8–12",rest:75,how:"Secure your thighs under the pad, sit tall, and pull toward your upper chest by driving your elbows down.",mistake:"Do not pull behind your neck or swing backward.",alts:["Assisted Pull-up","Seated Cable Row"]},
+{name:"Cable Crunch",area:"Abs",sets:2,reps:"10–15",rest:60,how:"Use a high cable with a rope. Kneel, hold the rope beside your head, and curl your rib cage toward your pelvis.",mistake:"Keep your hips relatively still; do not simply pull with your arms.",alts:["Ab Crunch Machine","Dead Bug"]},
+{name:"Pallof Press",area:"Obliques / core",sets:2,reps:"10 each side",rest:45,how:"Set a cable around chest height. Stand sideways to the stack, brace, and press the handle straight out without rotating.",mistake:"Keep hips and shoulders square; start light.",alts:["Cable Wood Chop","Side Plank"]},
+{name:"Side Plank",area:"Obliques / core",sets:2,reps:"30–45 sec/side",rest:45,how:"Elbow under shoulder. Lift your hips and keep head, ribs, hips, and feet in one line.",mistake:"Do not let your hips sag or rotate.",alts:["Suitcase Carry","Pallof Hold"]},
+{name:"Incline Treadmill",area:"Conditioning",sets:1,reps:"5–6 min",rest:0,how:"Alternate brisk incline walking with easy recovery. Keep it controlled rather than all-out.",mistake:"Avoid gripping or hanging on the rails.",alts:["Bike Intervals","Elliptical"]}
+],
+"Balanced":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk at a comfortable incline.",mistake:"Stay tall and relaxed.",alts:["Bike","Elliptical"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Controlled lowering and smooth press through the whole foot.",mistake:"Do not lock the knees.",alts:["Goblet Squat","Hack Squat"]},
+{name:"Chest Press",area:"Chest",sets:2,reps:"8–12",rest:75,how:"Handles at mid-chest and back supported.",mistake:"Do not shrug.",alts:["Dumbbell Press","Push-up"]},
+{name:"Lat Pulldown",area:"Back",sets:2,reps:"8–12",rest:75,how:"Pull toward upper chest while driving elbows down.",mistake:"Do not swing.",alts:["Assisted Pull-up","Cable Row"]},
+{name:"Romanian Deadlift",area:"Hamstrings / glutes",sets:2,reps:"8–10",rest:75,how:"Hold light dumbbells and push your hips back while keeping your spine neutral.",mistake:"Do not round your back.",alts:["Leg Curl","Hip Hinge Machine"]},
+{name:"Seated Cable Row",area:"Back",sets:2,reps:"10–12",rest:60,how:"Sit tall and pull the handle toward your lower ribs.",mistake:"Do not use momentum.",alts:["Chest-supported Row","Machine Row"]},
+{name:"Plank",area:"Core",sets:2,reps:"30–45 sec",rest:45,how:"Brace as if preparing for a punch and keep a straight line.",mistake:"Do not let the lower back sag.",alts:["Dead Bug","Pallof Press"]},
+{name:"Incline Treadmill",area:"Conditioning",sets:1,reps:"5 min",rest:0,how:"Finish with a brisk controlled effort.",mistake:"Avoid holding the rails.",alts:["Bike","Elliptical"]}
+],
+"Chest":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk.",mistake:"Stay relaxed.",alts:["Bike","Elliptical"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Controlled reps.",mistake:"No knee lockout.",alts:["Goblet Squat"]},
+{name:"Chest Press",area:"Chest",sets:3,reps:"8–12",rest:75,how:"Handles around mid-chest; press smoothly.",mistake:"Keep shoulders down.",alts:["Dumbbell Bench Press"]},
+{name:"Lat Pulldown",area:"Back",sets:2,reps:"8–12",rest:75,how:"Pull to upper chest.",mistake:"No swinging.",alts:["Cable Row"]},
+{name:"Incline Dumbbell Press",area:"Upper chest",sets:2,reps:"8–12",rest:75,how:"Bench around 30°. Use conservative weight and press up and slightly inward.",mistake:"Avoid excessive lower-back arching.",alts:["Incline Chest Press Machine"]},
+{name:"Cable Fly",area:"Chest",sets:2,reps:"10–15",rest:60,how:"Soft elbows; bring hands together in front of your chest.",mistake:"Do not overstretch.",alts:["Pec Deck"]},
+{name:"Plank",area:"Core",sets:2,reps:"30–45 sec",rest:45,how:"Brace firmly.",mistake:"No hip sag.",alts:["Dead Bug"]}
+],
+"Back":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk.",mistake:"Stay relaxed.",alts:["Bike","Elliptical"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Controlled reps.",mistake:"No knee lockout.",alts:["Goblet Squat"]},
+{name:"Lat Pulldown",area:"Back",sets:3,reps:"8–12",rest:75,how:"Drive elbows down toward ribs.",mistake:"No swinging.",alts:["Assisted Pull-up"]},
+{name:"Chest Press",area:"Chest",sets:2,reps:"8–12",rest:75,how:"Smooth press.",mistake:"Keep shoulders down.",alts:["Dumbbell Press"]},
+{name:"Seated Cable Row",area:"Back",sets:3,reps:"10–12",rest:75,how:"Pull to lower ribs.",mistake:"Do not lean backward.",alts:["Machine Row"]},
+{name:"Face Pull",area:"Upper back / rear delts",sets:2,reps:"12–15",rest:60,how:"Rope at face height; pull toward forehead with elbows high.",mistake:"Keep neck relaxed.",alts:["Reverse Pec Deck"]},
+{name:"Plank",area:"Core",sets:2,reps:"30–45 sec",rest:45,how:"Brace firmly.",mistake:"No hip sag.",alts:["Dead Bug"]}
+],
+"Arms":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk.",mistake:"Stay relaxed.",alts:["Bike"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Controlled reps.",mistake:"No knee lockout.",alts:["Goblet Squat"]},
+{name:"Chest Press",area:"Chest",sets:2,reps:"8–12",rest:75,how:"Smooth press.",mistake:"Keep shoulders down.",alts:["Dumbbell Press"]},
+{name:"Lat Pulldown",area:"Back",sets:2,reps:"8–12",rest:75,how:"Controlled pull.",mistake:"No swinging.",alts:["Cable Row"]},
+{name:"Dumbbell Curl",area:"Biceps",sets:2,reps:"10–12",rest:60,how:"Keep elbows near your sides and curl without swinging.",mistake:"Do not use torso momentum.",alts:["Cable Curl"]},
+{name:"Rope Pressdown",area:"Triceps",sets:2,reps:"10–12",rest:60,how:"Keep elbows pinned near your ribs and straighten the arms.",mistake:"Do not let shoulders roll forward.",alts:["Triceps Press Machine"]},
+{name:"Hammer Curl",area:"Biceps",sets:2,reps:"10–12",rest:60,how:"Neutral grip and controlled curl.",mistake:"Keep torso still.",alts:["Cable Rope Curl"]}
+],
+"Shoulders":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk.",mistake:"Stay relaxed.",alts:["Bike"]},
+{name:"Leg Press",area:"Legs",sets:2,reps:"8–12",rest:75,how:"Controlled reps.",mistake:"No knee lockout.",alts:["Goblet Squat"]},
+{name:"Chest Press",area:"Chest",sets:2,reps:"8–12",rest:75,how:"Smooth press.",mistake:"Keep shoulders down.",alts:["Dumbbell Press"]},
+{name:"Lat Pulldown",area:"Back",sets:2,reps:"8–12",rest:75,how:"Controlled pull.",mistake:"No swinging.",alts:["Cable Row"]},
+{name:"Shoulder Press",area:"Shoulders",sets:2,reps:"8–12",rest:75,how:"Adjust the seat so handles begin around ear level and press smoothly upward.",mistake:"Do not aggressively arch your back.",alts:["Dumbbell Shoulder Press"]},
+{name:"Lateral Raise",area:"Side delts",sets:2,reps:"12–15",rest:60,how:"Use light dumbbells and raise to roughly shoulder height.",mistake:"Do not shrug or swing.",alts:["Cable Lateral Raise"]},
+{name:"Face Pull",area:"Rear delts",sets:2,reps:"12–15",rest:60,how:"Pull rope toward forehead.",mistake:"Keep neck relaxed.",alts:["Reverse Pec Deck"]}
+],
+"Legs":[
+{name:"Treadmill",area:"Warm-up",sets:1,reps:"5 min",rest:0,how:"Brisk walk.",mistake:"Stay relaxed.",alts:["Bike"]},
+{name:"Leg Press",area:"Legs",sets:3,reps:"8–12",rest:90,how:"Controlled lowering and smooth press through the whole foot.",mistake:"No knee lockout.",alts:["Hack Squat","Goblet Squat"]},
+{name:"Romanian Deadlift",area:"Hamstrings / glutes",sets:2,reps:"8–10",rest:75,how:"Push hips back with light dumbbells while keeping your spine neutral.",mistake:"Do not round your back.",alts:["Leg Curl"]},
+{name:"Chest Press",area:"Chest",sets:2,reps:"8–12",rest:75,how:"Smooth press.",mistake:"Keep shoulders down.",alts:["Dumbbell Press"]},
+{name:"Lat Pulldown",area:"Back",sets:2,reps:"8–12",rest:75,how:"Controlled pull.",mistake:"No swinging.",alts:["Cable Row"]},
+{name:"Walking Lunge",area:"Legs / glutes",sets:2,reps:"8 each side",rest:75,how:"Take controlled steps and lower comfortably.",mistake:"Keep front knee tracking with toes.",alts:["Split Squat"]},
+{name:"Leg Curl",area:"Hamstrings",sets:2,reps:"10–12",rest:60,how:"Adjust pad just above heels and curl smoothly.",mistake:"Do not bounce.",alts:["Swiss-ball Leg Curl"]}
+]};
+
+function save(){localStorage.setItem("adaptiveCoachV6",JSON.stringify(S))}
+function n(v,d=1){return v==null||v===""?"—":Number(v).toFixed(d)}
+function parseWhoop(){
+ const p=new URLSearchParams(location.search);
+ if(!p.has("whoop"))return;
+ S.whoop={recovery:+p.get("recovery"),strain:+p.get("strain"),hrv:+p.get("hrv"),rhr:+p.get("rhr"),sleepPerformance:+p.get("sleepPerformance"),sleepHours:+p.get("sleepHours"),weightLb:+p.get("weightLb"),heightCm:+p.get("heightCm"),maxHr:+p.get("maxHr"),workoutStrain:p.get("workoutStrain")?+p.get("workoutStrain"):null,updated:new Date().toISOString()};
+ save();history.replaceState({},document.title,location.pathname);
+}
+parseWhoop();
+
+function ready(){
+ if(!S.whoop)return{level:"Unknown",score:null,color:""};
+ let score=S.whoop.recovery;
+ if(S.whoop.sleepPerformance<70)score-=8;else if(S.whoop.sleepPerformance<80)score-=4;
+ if(S.whoop.strain>15)score-=8;else if(S.whoop.strain>12)score-=4;
+ score=Math.max(0,Math.min(100,score));
+ if(score>=75)return{level:"High",score,color:"accent",factor:1};
+ if(score>=45)return{level:"Moderate",score,color:"amber",factor:.8};
+ return{level:"Low",score,color:"red",factor:.6};
+}
+function decision(){
+ const r=ready();
+ if(r.level==="High")return{title:"Full planned workout",detail:"Your recovery supports normal training today. Keep technique clean and use the optional conditioning finish.",target:"10–13"};
+ if(r.level==="Moderate")return{title:"Train, but trim volume",detail:"Keep the main movements but reduce accessory volume and avoid training to failure.",target:"8–11"};
+ if(r.level==="Low")return{title:"Recovery-biased session",detail:"Use lighter resistance, longer rests and fewer sets. Skip hard intervals.",target:"6–9"};
+ return{title:"Connect WHOOP to personalize intensity",detail:"Once connected, the coach will use recovery, sleep and strain to adapt today's plan.",target:"—"};
+}
+function nav(x){["Today","Coach","Scan","Progress"].forEach(y=>document.getElementById("n"+y).classList.toggle("on",x===y))}
+function show(x){nav(x);scrollTo(0,0);if(x==="Today")renderToday();if(x==="Coach")renderCoachHome();if(x==="Scan")renderScan();if(x==="Progress")renderProgress()}
+function plan(){
+ let p=(LIB[S.focus]||LIB.Balanced).map(x=>({...x}));
+ if(S.time<=20)p=p.slice(0,4);else if(S.time<=30)p=p.slice(0,5);
+ const r=ready();
+ p=p.map(e=>({...e,sets:r.level==="Low"?Math.max(1,e.sets-1):(r.level==="Moderate"&&e.sets>=3?e.sets-1:e.sets)}));
+ return p;
+}
+function totalSets(p){return p.reduce((a,e)=>a+e.sets,0)}
+function renderToday(){
+ const w=S.whoop,r=ready(),d=decision();
+ document.getElementById("app").innerHTML=`
+ <h1>Good ${new Date().getHours()<12?"morning":new Date().getHours()<18?"afternoon":"evening"}, ${S.name}</h1>
+ <p>Your guided personal-training session.</p>
+ <div class="card">
+  <div class="row"><div><div class="label">Today's readiness</div><div class="bigrec ${r.color}">${r.level}${r.score!=null?" · "+Math.round(r.score):""}</div></div>
+  <a class="btn secondary" href="/api/whoop/start">${w?"Refresh":"Connect"} WHOOP</a></div>
+  ${w?`<div class="grid" style="margin-top:14px">
+   <div class="metric"><div class="label">Recovery</div><div class="value accent">${Math.round(w.recovery)}%</div></div>
+   <div class="metric"><div class="label">Day strain</div><div class="value">${n(w.strain)}</div></div>
+   <div class="metric"><div class="label">HRV</div><div class="value">${Math.round(w.hrv)}<span class="small"> ms</span></div></div>
+   <div class="metric"><div class="label">Resting HR</div><div class="value">${Math.round(w.rhr)}<span class="small"> bpm</span></div></div>
+   <div class="metric"><div class="label">Sleep performance</div><div class="value">${Math.round(w.sleepPerformance)}%</div></div>
+   <div class="metric"><div class="label">Sleep</div><div class="value">${n(w.sleepHours)}<span class="small"> hr</span></div></div>
+  </div><div class="notice" style="margin-top:12px">✓ Live WHOOP data saved on this device.</div>`:`<div class="notice warn" style="margin-top:12px">Connect WHOOP to replace simulated readiness with your live data.</div>`}
+ </div>
+ <div class="card"><div class="label">Coach decision</div><h2>${d.title}</h2><p>${d.detail}</p><span class="pill">Target strain ${d.target}</span></div>
+ <div class="card"><h2>How much time?</h2><div class="chips">${[20,30,45,60].map(t=>`<button class="${S.time===t?'on':''}" onclick="S.time=${t};save();renderToday()">${t} min</button>`).join("")}</div></div>
+ <div class="card"><h2>What do you want to emphasize?</h2><div class="chips">${["Balanced","Abs & Core","Chest","Back","Arms","Shoulders","Legs"].map(f=>`<button class="${S.focus===f?'on':''}" onclick="S.focus='${f}';save();renderToday()">${f}</button>`).join("")}</div>
+ ${S.focus==="Abs & Core"?`<p class="small" style="margin-top:12px">Core training strengthens your abs and obliques. Reducing stomach/love-handle fat comes mainly from reducing overall body fat, not spot reduction.</p>`:""}</div>
+ <div class="card"><div class="label">Today's recommendation</div><h2>Full Body + ${S.focus} · ${S.time} min</h2><p>${plan().length} exercises · ${totalSets(plan())} total working sets.</p>
+ <button class="secondary full" onclick="renderOverview()">View full workout</button>
+ <button class="full" style="margin-top:8px" onclick="startSession()">Start guided workout</button></div>`;
+}
+
+function renderOverview(){
+ const p=plan(), d=decision(), r=ready();
+ const est=Math.max(15,Math.min(S.time, Math.round(p.reduce((m,e)=>m+(e.sets*3)+(e.rest?e.sets*e.rest/60:2),0))));
+ document.getElementById("app").innerHTML=`
+ <div class="label">Workout overview</div>
+ <h1>Full Body + ${S.focus}</h1>
+ <p>Here is the full session the coach has in mind before you begin.</p>
+
+ <div class="card">
+   <div class="row">
+     <div><div class="label">Planned duration</div><div class="value">${S.time}<span class="small"> min</span></div></div>
+     <div><div class="label">Readiness</div><div class="value ${r.color}" style="font-size:24px">${r.level}</div></div>
+   </div>
+   <p>${d.detail}</p>
+   <span class="pill">${p.length} exercises</span>
+   <span class="pill">${totalSets(p)} working sets</span>
+   <span class="pill">Target strain ${d.target}</span>
+ </div>
+
+ <div class="card">
+   <h2>Full workout</h2>
+   ${p.map((e,i)=>`
+     <div class="exercise">
+       <div class="row">
+         <div>
+           <div class="label">${i+1}. ${e.area}</div>
+           <div style="font-size:18px;font-weight:850;margin-top:4px">${e.name}</div>
+         </div>
+         <div style="text-align:right">
+           <div style="font-weight:850">${e.sets} × ${e.reps}</div>
+           <div class="small">${e.rest?e.rest+" sec rest":"continuous"}</div>
+         </div>
+       </div>
+     </div>`).join("")}
+ </div>
+
+ <div class="card soft">
+   <h2>How the session is structured</h2>
+   <div class="exercise"><b>1. Warm-up</b><p>Raise body temperature and prepare the joints without creating meaningful fatigue.</p></div>
+   <div class="exercise"><b>2. Main full-body strength</b><p>Legs, pushing and pulling movements first while you are freshest.</p></div>
+   <div class="exercise"><b>3. ${S.focus} emphasis</b><p>Additional volume shifts toward your selected target area.</p></div>
+   <div class="exercise"><b>4. Core / conditioning finish</b><p>Complete the session with targeted core work or controlled conditioning when readiness supports it.</p></div>
+ </div>
+
+ <button class="full" onclick="startSession()">Start this workout</button>
+ <button class="ghost full" style="margin-top:8px" onclick="show('Today')">Change workout</button>`;
+}
+
+function startSession(){
+ const p=plan();
+ S.session={started:new Date().toISOString(),index:0,set:1,plan:p,completed:[],timer:0,running:false};
+ save();show("Coach");
+}
+function renderCoachHome(){
+ if(!S.session){document.getElementById("app").innerHTML=`<h1>Coach</h1><div class="card"><h2>No workout in progress</h2><p>Choose your time and target area on Today, then start your guided workout.</p><button class="full" onclick="show('Today')">Build today's workout</button></div>`;return}
+ renderExercise();
+}
+function renderExercise(){
+ const ss=S.session,p=ss.plan,i=ss.index;
+ if(i>=p.length){finishSession();return}
+ const e=p[i],pct=Math.round((i/p.length)*100),learn=S.weights[e.name];
+ document.getElementById("app").innerHTML=`
+ <div class="label">Guided workout · ${S.focus}</div><h1>${e.name}</h1>
+ <div class="progressbar"><div style="width:${pct}%"></div></div><p class="small">Exercise ${i+1} of ${p.length}</p>
+ <div class="card"><div class="row"><div><div class="label">${e.area}</div><div class="rx">${e.sets} × ${e.reps}</div></div><span class="pill">Rest ${e.rest?e.rest+" sec":"—"}</span></div>
+ <p>${ready().level==="Low"?"Today, use a lighter-than-usual resistance and leave several good reps in reserve.":"Choose a resistance where the final 2–3 reps feel challenging while technique stays clean."}</p></div>
+ <div class="card soft"><h3>How to do it</h3><p>${e.how}</p><div class="notice warn"><b>Watch for:</b> ${e.mistake}</div>
+ <a class="btn secondary full" style="margin-top:12px" target="_blank" href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.name+" exercise proper form")}">▶ Watch a form video</a></div>
+ ${e.sets>1?`<div class="card"><div class="label">Current set</div><h2>Set ${ss.set} of ${e.sets}</h2>
+ <div class="setline"><span>Weight</span><div><input id="wt" type="number" inputmode="decimal" value="${learn||""}" placeholder="lb"> <span class="small">lb</span></div></div>
+ <button class="full" onclick="completeSet()">Complete set ${ss.set}</button></div>`:`<div class="card"><div class="label">Complete</div><h2>${e.reps}</h2><button class="full" onclick="completeExercise()">Done</button></div>`}
+ <button class="ghost full" onclick="substitute()">Swap this exercise</button>
+ <button class="ghost full" style="margin-top:8px" onclick="show('Scan')">Scan this equipment</button>`;
+}
+function completeSet(){
+ const e=S.session.plan[S.session.index],v=document.getElementById("wt").value;
+ if(v)S.weights[e.name]=Number(v);
+ if(S.session.set<e.sets){
+   S.session.set++;S.session.timer=e.rest;S.session.running=true;save();renderTimer(e);
+ }else{
+   S.session.set=1;save();renderRating(e);
+ }
+ save();
+}
+function completeExercise(){const e=S.session.plan[S.session.index];renderRating(e)}
+function renderTimer(e){
+ document.getElementById("app").innerHTML=`<div class="label">${e.name}</div><h1>Rest</h1><div class="card"><div id="timer" class="timer">${S.session.timer}</div><p style="text-align:center">Next: set ${S.session.set} of ${e.sets}</p>
+ <div class="timerBtns"><button class="secondary" onclick="skipTimer()">Skip</button><button onclick="addTime()">+15 sec</button></div></div><div class="notice">Use the rest period to reset your breathing and technique. You do not need to rush between strength sets.</div>`;
+ runTimer();
+}
+let TI=null;
+function runTimer(){clearInterval(TI);TI=setInterval(()=>{if(!S.session||!S.session.running){clearInterval(TI);return}S.session.timer--;if(S.session.timer<=0){S.session.running=false;save();clearInterval(TI);renderExercise();return}save();const el=document.getElementById("timer");if(el)el.textContent=S.session.timer},1000)}
+function skipTimer(){S.session.running=false;S.session.timer=0;save();clearInterval(TI);renderExercise()}
+function addTime(){S.session.timer+=15;save();const el=document.getElementById("timer");if(el)el.textContent=S.session.timer}
+function renderRating(e){
+ document.getElementById("app").innerHTML=`<h1>How did ${e.name} feel?</h1><p>Your answer helps the coach learn your appropriate working weight.</p>
+ <div class="card"><div class="rating"><button onclick="rate('easy')">Too easy</button><button onclick="rate('good')">About right</button><button onclick="rate('hard')">Too hard</button></div></div>
+ <div class="notice">Stop an exercise if you feel sharp pain, dizziness, chest pain, or unusual shortness of breath.</div>`;
+}
+function rate(x){
+ const e=S.session.plan[S.session.index],cur=S.weights[e.name];
+ if(cur){if(x==="easy")S.weights[e.name]=cur+5;if(x==="hard")S.weights[e.name]=Math.max(5,cur-5)}
+ S.session.completed.push({name:e.name,rating:x,weight:S.weights[e.name]||null});
+ S.session.index++;S.session.set=1;save();renderExercise();
+}
+function substitute(){
+ const e=S.session.plan[S.session.index];
+ document.getElementById("app").innerHTML=`<h1>Swap ${e.name}</h1><p>Choose an alternative that trains a similar area.</p>
+ <div class="card">${e.alts.map(a=>`<button class="secondary full" style="margin:5px 0" onclick="chooseAlt('${a.replaceAll("'","\\'")}')">${a}</button>`).join("")}</div>
+ <button class="ghost full" onclick="renderExercise()">Keep ${e.name}</button>`;
+}
+function chooseAlt(name){
+ const old=S.session.plan[S.session.index];
+ S.session.plan[S.session.index]={...old,name,how:"Use the machine's setup labels if available, begin with a light resistance, and move through a comfortable controlled range.",mistake:"Do not force a range of motion or use momentum.",alts:[old.name]};
+ save();renderExercise();
+}
+function finishSession(){
+ const ss=S.session;
+ S.history.push({date:new Date().toISOString(),focus:S.focus,time:S.time,recovery:S.whoop?.recovery??null,completed:ss.completed});
+ S.session=null;save();
+ document.getElementById("app").innerHTML=`<h1>Workout complete</h1><div class="card"><h2>Session saved</h2><p>Your exercise feedback and learned working weights are stored on this device for your next workout.</p><button class="full" onclick="show('Progress')">View progress</button></div>`;
+}
+function renderScan(){
+ document.getElementById("app").innerHTML=`<h1>Scan Equipment</h1><p>Photograph a machine when you are not sure what it is or whether it belongs in today's session.</p>
+ <div class="card"><label class="btn secondary full" for="photo">📷 Take or choose a photo</label><input id="photo" style="display:none" type="file" accept="image/*" capture="environment" onchange="preview(event)"><div id="preview"></div></div>
+ <div class="card"><h2>Equipment identification</h2><p>The camera works now. The next backend module will analyze the image and return the machine name, muscles trained, setup, sets/reps and whether it fits today's workout.</p></div>`;
+}
+function preview(ev){const f=ev.target.files[0];if(!f)return;const u=URL.createObjectURL(f);document.getElementById("preview").innerHTML=`<img src="${u}" style="width:100%;border-radius:15px;margin-top:14px"><div class="notice" style="margin-top:10px">Photo captured. AI identification is the next feature to connect.</div>`}
+function renderProgress(){
+ const rows=Object.entries(S.weights);
+ document.getElementById("app").innerHTML=`<h1>Progress</h1><div class="grid"><div class="metric"><div class="label">Completed workouts</div><div class="value">${S.history.length}</div></div><div class="metric"><div class="label">Current focus</div><div style="font-size:19px;font-weight:850;margin-top:10px">${S.focus}</div></div></div>
+ <div class="card"><h2>Learned working weights</h2>${rows.length?rows.map(([k,v])=>`<div class="setline"><span>${k}</span><b>${v} lb</b></div>`).join(""):"<p>Complete exercises and log the weight you use. Your targets will appear here.</p>"}</div>
+ ${S.whoop?`<div class="card"><h2>Latest WHOOP body data</h2><p>${n(S.whoop.weightLb)} lb · ${Math.round(S.whoop.heightCm)} cm · Max HR ${Math.round(S.whoop.maxHr)} bpm</p></div>`:""}`;
+}
+renderToday();
+</script>
+</body>
+</html>
